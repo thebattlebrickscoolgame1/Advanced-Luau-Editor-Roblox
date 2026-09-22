@@ -319,7 +319,10 @@ local backdoorDetected = false
 -- SS Toggle button logic
 ssToggleBtn.MouseButton1Click:Connect(function()
     playClick()
-    if not backdoorDetected then
+    if not backdoorDetected or not selectedTarget then
+        serversideActive = false
+        ssToggleBtn.Text = "SS Mode: OFF"
+        ssToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
         logEditor("SS Locked: Scan and detect a valid backdoor first!", true)
         return
     end
@@ -408,8 +411,11 @@ executeBtn.MouseButton1Click:Connect(function()
     
     local success, err = pcall(function()
         if serversideActive then
-            if not selectedTarget then
-                error("No remote target selected for Serverside execution.")
+            if not selectedTarget or not backdoorDetected then
+                serversideActive = false
+                ssToggleBtn.Text = "SS Mode: OFF"
+                ssToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+                error("No valid backdoor remote target selected for Serverside execution.")
             end
             if selectedTarget:IsA("RemoteEvent") or selectedTarget:IsA("UnreliableRemoteEvent") then
                 selectedTarget:FireServer(codeEditor.Text)
@@ -476,12 +482,12 @@ logLayout.SortOrder = Enum.SortOrder.LayoutOrder
 logLayout.Padding = UDim.new(0, 3)
 logLayout.Parent = logContainer
 
-local function addLog(text, isError)
+local function addLog(text, isSuccess)
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, 0, 0, 24)
     lbl.BackgroundTransparency = 1
     lbl.Text = "  " .. text
-    lbl.TextColor3 = isError and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(180, 220, 180)
+    lbl.TextColor3 = isSuccess and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
     lbl.TextSize = 11
     lbl.Font = Enum.Font.Code
     lbl.TextXAlignment = Enum.TextXAlignment.Left
@@ -498,7 +504,15 @@ longScanBtn.MouseButton1Click:Connect(function()
         if child:IsA("TextLabel") then child:Destroy() end
     end
     
-    addLog("Initializing deep server-side remote probe...", false)
+    backdoorDetected = false
+    selectedTarget = nil
+    if serversideActive then
+        serversideActive = false
+        ssToggleBtn.Text = "SS Mode: OFF"
+        ssToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    end
+    
+    addLog("Initializing deep server-side remote probe...", true)
     
     task.spawn(function()
         local found = false
@@ -677,7 +691,7 @@ local function loadRemotes()
                     selectedTarget = desc
                     backdoorDetected = true
                     codeEditor.Text = string.format("-- Selected Target: %s\n-- Ready for execution", desc:GetFullName())
-                    logEditor("Targeted: " .. desc.Name, false)
+                    logEditor("Targeted: " + desc.Name, false)
                 end)
             end
         end
