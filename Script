@@ -1,0 +1,679 @@
+-- Run this script via your local environment or studio command bar
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local ContentProvider = game:GetService("ContentProvider")
+local LocalPlayer = Players.LocalPlayer
+
+-- Global Button Click Sound Effect
+local clickSound = Instance.new("Sound")
+clickSound.SoundId = "rbxassetid://136275224021234"
+clickSound.Volume = 0.5
+clickSound.Parent = CoreGui
+
+local function playClick()
+    clickSound:Play()
+end
+
+-- Anti-Skid Environment Check (Xeno & Delta Detection)
+task.spawn(function()
+    local envName = ""
+    pcall(function()
+        if identifyexecutor then
+            local success, res = pcall(identifyexecutor)
+            if success and res then
+                envName = string.lower(tostring(res))
+            end
+        end
+    end)
+    
+    if envName == "" then
+        local env = getgenv and getgenv() or _G
+        if rawget(env, "Xeno") then envName = "xeno" end
+        if rawget(env, "Delta") then envName = "delta" end
+    end
+    
+    if envName:find("xeno") or envName:find("delta") then
+        LocalPlayer:Kick("SKID DETECTED LOLLL!")
+    end
+end)
+
+-- Kick Denier Hook (Protects against Player:Kick calls)
+local mt = getrawmetatable(game)
+if mt then
+    setreadonly(mt, false)
+    local oldNamecall = mt.__namecall
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "Kick" and self == LocalPlayer then
+            warn("[DevSuite] Blocked an attempt to kick you from the game.")
+            return
+        end
+        return oldNamecall(self, ...)
+    end)
+    setreadonly(mt, true)
+end
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DevSuiteGUI"
+screenGui.ResetOnSpawn = false
+pcall(function()
+    screenGui.Parent = CoreGui
+end)
+if not screenGui.Parent then
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 700, 0, 500)
+mainFrame.Position = UDim2.new(0.5, -350, 0.5, -250)
+mainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+-- Title Bar
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -220, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(38, 38, 46)
+title.Text = "  Advanced Dev Suite & Luau Editor"
+title.TextColor3 = Color3.fromRGB(240, 240, 240)
+title.TextSize = 14
+title.Font = Enum.Font.Code
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.BorderSizePixel = 0
+title.Parent = mainFrame
+
+-- Credits Label
+local creditsLabel = Instance.new("TextLabel")
+creditsLabel.Size = UDim2.new(0, 130, 0, 40)
+creditsLabel.Position = UDim2.new(1, -220, 0, 0)
+creditsLabel.BackgroundTransparency = 1
+creditsLabel.Text = "made by spleef!"
+creditsLabel.TextColor3 = Color3.fromRGB(130, 170, 255)
+creditsLabel.TextSize = 11
+creditsLabel.Font = Enum.Font.Code
+creditsLabel.TextXAlignment = Enum.TextXAlignment.Right
+creditsLabel.BorderSizePixel = 0
+creditsLabel.Parent = mainFrame
+
+-- Close Button (X)
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 40, 0, 40)
+closeBtn.Position = UDim2.new(1, -40, 0, 0)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+closeBtn.TextSize = 14
+closeBtn.Font = Enum.Font.Code
+closeBtn.BorderSizePixel = 0
+closeBtn.Parent = mainFrame
+closeBtn.MouseButton1Click:Connect(function()
+    playClick()
+    screenGui:Destroy()
+end)
+
+-- Minimize Button (-)
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 40, 0, 40)
+minBtn.Position = UDim2.new(1, -80, 0, 0)
+minBtn.BackgroundTransparency = 1
+minBtn.Text = "-"
+minBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+minBtn.TextSize = 16
+minBtn.Font = Enum.Font.Code
+minBtn.BorderSizePixel = 0
+minBtn.Parent = mainFrame
+
+local minimized = false
+local tabContainer, contentContainer
+
+---------------------------------------------------------
+-- Navigation Tabs Bar & Content
+---------------------------------------------------------
+tabContainer = Instance.new("Frame")
+tabContainer.Size = UDim2.new(1, 0, 0, 35)
+tabContainer.Position = UDim2.new(0, 0, 0, 40)
+tabContainer.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+tabContainer.BorderSizePixel = 0
+tabContainer.Parent = mainFrame
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Parent = tabContainer
+
+local tabs = {"Explorer & Editor", "Backdoor Scanner", "Settings"}
+local pages = {}
+
+contentContainer = Instance.new("Frame")
+contentContainer.Size = UDim2.new(1, 0, 1, -75)
+contentContainer.Position = UDim2.new(0, 0, 0, 75)
+contentContainer.BackgroundTransparency = 1
+contentContainer.Parent = mainFrame
+
+minBtn.MouseButton1Click:Connect(function()
+    playClick()
+    minimized = not minimized
+    contentContainer.Visible = not minimized
+    tabContainer.Visible = not minimized
+    mainFrame.Size = minimized and UDim2.new(0, 700, 0, 40) or UDim2.new(0, 700, 0, 500)
+end)
+
+---------------------------------------------------------
+-- PAGE 1: Explorer & Editor
+---------------------------------------------------------
+local page1 = Instance.new("Frame")
+page1.Size = UDim2.new(1, 0, 1, 0)
+page1.BackgroundTransparency = 1
+page1.Visible = true
+page1.Parent = contentContainer
+table.insert(pages, page1)
+
+local searchBox = Instance.new("TextBox")
+searchBox.Size = UDim2.new(0.38, -15, 0, 24)
+searchBox.Position = UDim2.new(0, 10, 1, -35)
+searchBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchBox.PlaceholderText = "Search All Remotes..."
+searchBox.Text = ""
+searchBox.TextSize = 10
+searchBox.Font = Enum.Font.Code
+searchBox.BorderSizePixel = 0
+searchBox.Parent = page1
+
+-- SS Mode Toggle Button
+local ssToggleBtn = Instance.new("TextButton")
+ssToggleBtn.Size = UDim2.new(0.38, -15, 0, 28)
+ssToggleBtn.Position = UDim2.new(0, 10, 1, -68)
+ssToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+ssToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ssToggleBtn.Text = "SS Mode: OFF"
+ssToggleBtn.TextSize = 11
+ssToggleBtn.Font = Enum.Font.Code
+ssToggleBtn.BorderSizePixel = 0
+ssToggleBtn.Parent = page1
+
+local listContainer = Instance.new("ScrollingFrame")
+listContainer.Size = UDim2.new(0.38, -15, 1, -78)
+listContainer.Position = UDim2.new(0, 10, 0, 10)
+listContainer.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+listContainer.BorderSizePixel = 0
+listContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+listContainer.Parent = page1
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 4)
+listLayout.Parent = listContainer
+
+local editorContainer = Instance.new("Frame")
+editorContainer.Size = UDim2.new(0.6, -15, 1, -20)
+editorContainer.Position = UDim2.new(0.38, 15, 0, 10)
+editorContainer.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+editorContainer.BorderSizePixel = 0
+editorContainer.Parent = page1
+
+local btnWidth = 0.22
+local gap = 0.018
+
+local executeBtn = Instance.new("TextButton")
+executeBtn.Size = UDim2.new(btnWidth, 0, 0, 35)
+executeBtn.Position = UDim2.new(0, 5, 1, -95)
+executeBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
+executeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+executeBtn.Text = "Execute"
+executeBtn.TextSize = 12
+executeBtn.Font = Enum.Font.Code
+executeBtn.BorderSizePixel = 0
+executeBtn.Parent = editorContainer
+
+local scriptLoopBtn = Instance.new("TextButton")
+scriptLoopBtn.Size = UDim2.new(btnWidth, 0, 0, 35)
+scriptLoopBtn.Position = UDim2.new(btnWidth + gap, 5, 1, -95)
+scriptLoopBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+scriptLoopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+scriptLoopBtn.Text = "Loop: OFF"
+scriptLoopBtn.TextSize = 11
+scriptLoopBtn.Font = Enum.Font.Code
+scriptLoopBtn.BorderSizePixel = 0
+scriptLoopBtn.Parent = editorContainer
+
+local intervalInput = Instance.new("TextBox")
+intervalInput.Size = UDim2.new(btnWidth, 0, 0, 35)
+intervalInput.Position = UDim2.new((btnWidth * 2) + (gap * 2), 5, 1, -95)
+intervalInput.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+intervalInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+intervalInput.PlaceholderText = "Secs"
+intervalInput.Text = "1"
+intervalInput.TextSize = 11
+intervalInput.Font = Enum.Font.Code
+intervalInput.ClearTextOnFocus = false
+intervalInput.BorderSizePixel = 0
+intervalInput.Parent = editorContainer
+
+local setIntervalBtn = Instance.new("TextButton")
+setIntervalBtn.Size = UDim2.new(btnWidth, 0, 0, 35)
+setIntervalBtn.Position = UDim2.new((btnWidth * 3) + (gap * 3), 5, 1, -95)
+setIntervalBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 95)
+setIntervalBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+setIntervalBtn.Text = "Set"
+setIntervalBtn.TextSize = 11
+setIntervalBtn.Font = Enum.Font.Code
+setIntervalBtn.BorderSizePixel = 0
+setIntervalBtn.Parent = editorContainer
+
+local editorLogScroll = Instance.new("ScrollingFrame")
+editorLogScroll.Size = UDim2.new(1, -10, 0, 65)
+editorLogScroll.Position = UDim2.new(0, 5, 1, -55)
+editorLogScroll.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+editorLogScroll.BorderSizePixel = 0
+editorLogScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+editorLogScroll.Parent = editorContainer
+
+local editorLogLayout = Instance.new("UIListLayout")
+editorLogLayout.SortOrder = Enum.SortOrder.LayoutOrder
+editorLogLayout.Padding = UDim.new(0, 2)
+editorLogLayout.Parent = editorLogScroll
+
+local function logEditor(msg, isError)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 20)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = "[" .. os.date("%X") .. "] " .. tostring(msg)
+    lbl.TextColor3 = isError and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(150, 220, 150)
+    lbl.TextSize = 11
+    lbl.Font = Enum.Font.Code
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextWrapped = true
+    lbl.BorderSizePixel = 0
+    lbl.Parent = editorLogScroll
+    editorLogScroll.CanvasSize = UDim2.new(0, 0, 0, editorLogLayout.AbsoluteContentSize.Y)
+    editorLogScroll.CanvasPosition = Vector2.new(0, editorLogScroll.CanvasSize.Y)
+end
+
+local codeEditor = Instance.new("TextBox")
+codeEditor.Size = UDim2.new(1, -10, 1, -105)
+codeEditor.Position = UDim2.new(0, 5, 0, 5)
+codeEditor.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+codeEditor.TextColor3 = Color3.fromRGB(200, 230, 255)
+codeEditor.PlaceholderText = "-- Write or modify Luau code here..."
+codeEditor.Text = "-- Select a RemoteEvent or Backdoor hook\nprint('Hello World!')"
+codeEditor.TextSize = 12
+codeEditor.Font = Enum.Font.Code
+codeEditor.MultiLine = true
+codeEditor.ClearTextOnFocus = false
+codeEditor.TextXAlignment = Enum.TextXAlignment.Left
+codeEditor.TextYAlignment = Enum.TextYAlignment.Top
+codeEditor.ClipsDescendants = true
+codeEditor.BorderSizePixel = 0
+codeEditor.Parent = editorContainer
+
+logEditor("Editor ready.", false)
+
+local selectedTarget = nil
+local serversideActive = false
+local backdoorDetected = false
+
+-- SS Toggle button logic
+ssToggleBtn.MouseButton1Click:Connect(function()
+    playClick()
+    if not backdoorDetected then
+        logEditor("SS Locked: Scan and detect a valid backdoor first!", true)
+        return
+    end
+    
+    serversideActive = not serversideActive
+    if serversideActive then
+        ssToggleBtn.Text = "SS Mode: ON"
+        ssToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 140, 60)
+        logEditor("Serverside Mode activated. Remotes will dispatch payloads.", false)
+    else
+        ssToggleBtn.Text = "SS Mode: OFF"
+        ssToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        logEditor("Serverside Mode disabled.", false)
+    end
+end)
+
+local currentLoopInterval = 1
+setIntervalBtn.MouseButton1Click:Connect(function()
+    playClick()
+    local val = tonumber(intervalInput.Text)
+    if val and val > 0 then
+        currentLoopInterval = val
+        logEditor("Loop interval set to: " .. tostring(val) .. "s", false)
+    else
+        logEditor("Invalid interval value!", true)
+    end
+end)
+
+local scriptLoopActive = false
+scriptLoopBtn.MouseButton1Click:Connect(function()
+    playClick()
+    scriptLoopActive = not scriptLoopActive
+    
+    if not scriptLoopActive then
+        scriptLoopBtn.Text = "Loop: OFF"
+        scriptLoopBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+        logEditor("Loop execution stopped.", false)
+    else
+        if serversideActive and not selectedTarget then
+            logEditor("Loop Aborted: SS Mode requires a selected target remote.", true)
+            scriptLoopActive = false
+            scriptLoopBtn.Text = "Loop: OFF"
+            return
+        end
+        local val = tonumber(intervalInput.Text)
+        if val and val > 0 then currentLoopInterval = val end
+        
+        scriptLoopBtn.Text = "Loop: ON (" .. tostring(currentLoopInterval) .. "s)"
+        scriptLoopBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
+        logEditor("Loop active every " .. tostring(currentLoopInterval) .. "s.", false)
+        
+        task.spawn(function()
+            while scriptLoopActive do
+                task.wait(currentLoopInterval)
+                if not scriptLoopActive then break end
+                pcall(function()
+                    if serversideActive and selectedTarget then
+                        if selectedTarget:IsA("RemoteEvent") or selectedTarget:IsA("UnreliableRemoteEvent") then
+                            selectedTarget:FireServer(codeEditor.Text)
+                        elseif selectedTarget:IsA("RemoteFunction") then
+                            selectedTarget:InvokeServer(codeEditor.Text)
+                        end
+                    else
+                        local func = loadstring(codeEditor.Text)
+                        if func then
+                            local env = setmetatable({
+                                game = game, workspace = workspace, script = script,
+                                print = print, warn = warn, error = error,
+                                math = math, string = string, table = table,
+                                pcall = pcall, select = select, unpack = unpack,
+                                target = selectedTarget
+                            }, {__index = (getgenv and getgenv() or _G)})
+                            setfenv(func, env :: any)
+                            func()
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+end)
+
+-- Execute Handler
+executeBtn.MouseButton1Click:Connect(function()
+    playClick()
+    
+    local success, err = pcall(function()
+        if serversideActive then
+            if not selectedTarget then
+                error("No remote target selected for Serverside execution.")
+            end
+            if selectedTarget:IsA("RemoteEvent") or selectedTarget:IsA("UnreliableRemoteEvent") then
+                selectedTarget:FireServer(codeEditor.Text)
+            elseif selectedTarget:IsA("RemoteFunction") then
+                selectedTarget:InvokeServer(codeEditor.Text)
+            else
+                error("Selected target is not a valid Remote object.")
+            end
+            logEditor("Serverside payload dispatched to: " .. selectedTarget.Name, false)
+        else
+            local func = loadstring(codeEditor.Text)
+            if func then
+                local env = setmetatable({
+                    game = game, workspace = workspace, script = script,
+                    print = print, warn = warn, error = error,
+                    math = math, string = string, table = table,
+                    pcall = pcall, select = select, unpack = unpack,
+                    target = selectedTarget
+                }, {__index = (getgenv and getgenv() or _G)})
+                setfenv(func, env :: any)
+                func()
+                logEditor("Local script executed successfully.", false)
+            else
+                error("Compilation syntax error.")
+            end
+        end
+    end)
+    if not success then
+        logEditor("Error: " .. tostring(err), true)
+    end
+end)
+
+---------------------------------------------------------
+-- PAGE 2: Backdoor Scanner (Fixed Heuristic Engine)
+---------------------------------------------------------
+local page2 = Instance.new("Frame")
+page2.Size = UDim2.new(1, 0, 1, 0)
+page2.BackgroundTransparency = 1
+page2.Visible = false
+page2.Parent = contentContainer
+table.insert(pages, page2)
+
+local longScanBtn = Instance.new("TextButton")
+longScanBtn.Size = UDim2.new(1, -20, 0, 55)
+longScanBtn.Position = UDim2.new(0, 10, 0, 10)
+longScanBtn.BackgroundColor3 = Color3.fromRGB(180, 100, 40)
+longScanBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+longScanBtn.Text = "RUN SMART BACKDOOR SCAN"
+longScanBtn.TextSize = 15
+longScanBtn.Font = Enum.Font.Code
+longScanBtn.BorderSizePixel = 0
+longScanBtn.Parent = page2
+
+local logContainer = Instance.new("ScrollingFrame")
+logContainer.Size = UDim2.new(1, -20, 1, -80)
+logContainer.Position = UDim2.new(0, 10, 0, 75)
+logContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+logContainer.BorderSizePixel = 0
+logContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+logContainer.Parent = page2
+
+local logLayout = Instance.new("UIListLayout")
+logLayout.SortOrder = Enum.SortOrder.LayoutOrder
+logLayout.Padding = UDim.new(0, 3)
+logLayout.Parent = logContainer
+
+local function addLog(text, isError)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 24)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = "  " .. text
+    lbl.TextColor3 = isError and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(180, 220, 180)
+    lbl.TextSize = 11
+    lbl.Font = Enum.Font.Code
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextWrapped = true
+    lbl.BorderSizePixel = 0
+    lbl.Parent = logContainer
+    logContainer.CanvasSize = UDim2.new(0, 0, 0, logLayout.AbsoluteContentSize.Y)
+end
+
+longScanBtn.MouseButton1Click:Connect(function()
+    playClick()
+    for _, child in ipairs(logContainer:GetChildren()) do
+        if child:IsA("TextLabel") then child:Destroy() end
+    end
+    
+    addLog("Analyzing server infrastructure and remote event behaviors...", false)
+    task.wait(0.2)
+    
+    local foundAny = false
+    local checkedCount = 0
+    
+    for _, obj in ipairs(game:GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") or obj:IsA("UnreliableRemoteEvent") then
+            checkedCount = checkedCount + 1
+            local name = obj.Name
+            local fullName = obj:GetFullName()
+            
+            if name:len() == 32 or name:find("%%") or name:lower() == "rm" or name:lower() == "exec" or name:lower() == "ServerEndpoint" or name:lower() == "NetworkHandler" then
+                foundAny = true
+                backdoorDetected = true
+                selectedTarget = obj
+                addLog("[POTENTIAL BACKDOOR] " .. fullName, true)
+            end
+        end
+    end
+    
+    addLog(string.format("Scan completed. Checked %d remotes.", checkedCount), false)
+    if foundAny then
+        addLog("STATUS: Backdoor remote identified and targeted! Enable SS Mode to use it.", true)
+        codeEditor.Text = string.format("-- Hooked Remote: %s\nprint('Injecting via Backdoor')", selectedTarget:GetFullName())
+    else
+        addLog("STATUS: No suspicious backdoors auto-detected. Select a Remote manually from the Explorer tab.", false)
+    end
+end)
+
+---------------------------------------------------------
+-- PAGE 3: Settings Menu
+---------------------------------------------------------
+local page3 = Instance.new("Frame")
+page3.Size = UDim2.new(1, 0, 1, 0)
+page3.BackgroundTransparency = 1
+page3.Visible = false
+page3.Parent = contentContainer
+table.insert(pages, page3)
+
+local function createSettingButton(posY, initialText)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 38)
+    btn.Position = UDim2.new(0, 10, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = initialText
+    btn.TextSize = 12
+    btn.Font = Enum.Font.Code
+    btn.TextWrapped = true
+    btn.BorderSizePixel = 0
+    btn.Parent = page3
+    return btn
+end
+
+local persistentAutoExec = false
+local autoExecToggle = createSettingButton(10, "Auto-Execute (Keep across games): OFF")
+
+autoExecToggle.MouseButton1Click:Connect(function()
+    playClick()
+    persistentAutoExec = not persistentAutoExec
+    if persistentAutoExec then
+        autoExecToggle.Text = "Auto-Execute (Keep across games): ACTIVE"
+        autoExecToggle.BackgroundColor3 = Color3.fromRGB(50, 150, 80)
+        pcall(function()
+            if queue_on_teleport then
+                queue_on_teleport([[
+                    task.spawn(function()
+                        task.wait(2)
+                        loadstring(game:HttpGet("YOUR_SCRIPT_URL_OR_SOURCE_HERE"))()
+                    end)
+                ]])
+            end
+        end)
+    else
+        autoExecToggle.Text = "Auto-Execute (Keep across games): OFF"
+        autoExecToggle.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        pcall(function()
+            if queue_on_teleport then
+                queue_on_teleport("")
+            end
+        end)
+    end
+end)
+
+local themeToggle = createSettingButton(55, "Editor Theme: Dark Minimal")
+local themes = {
+    {Name = "Dark Minimal", Bg = Color3.fromRGB(12, 12, 16), Text = Color3.fromRGB(200, 230, 255)},
+    {Name = "Matrix Green", Bg = Color3.fromRGB(10, 20, 10), Text = Color3.fromRGB(100, 255, 100)},
+    {Name = "Hacker Amber", Bg = Color3.fromRGB(25, 18, 10), Text = Color3.fromRGB(255, 180, 80)}
+}
+local currentThemeIdx = 1
+
+themeToggle.MouseButton1Click:Connect(function()
+    playClick()
+    currentThemeIdx = currentThemeIdx % #themes + 1
+    local t = themes[currentThemeIdx]
+    themeToggle.Text = "Editor Theme: " .. t.Name
+    codeEditor.BackgroundColor3 = t.Bg
+    codeEditor.TextColor3 = t.Text
+end)
+
+local kickDenierBtn = createSettingButton(100, "LocalScript Kick Denier: ACTIVE (Protected)")
+kickDenierBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 60)
+kickDenierBtn.MouseButton1Click:Connect(function()
+    playClick()
+    kickDenierBtn.Text = "LocalScript Kick Denier: ACTIVE"
+end)
+
+local execInfoBtn = createSettingButton(145, "Check Executor Info (Click to Run)")
+execInfoBtn.MouseButton1Click:Connect(function()
+    playClick()
+    local env = getgenv and getgenv() or _G
+    local exploitName = identifyexecutor and identifyexecutor() or (rawget(env, "fluxus") and "Fluxus") or (rawget(env, "syn") and "Synapse") or "Unknown Environment"
+    execInfoBtn.Text = "Executor: " .. tostring(exploitName) .. " | Workspace Active"
+end)
+
+---------------------------------------------------------
+-- Tab Switching Logic
+---------------------------------------------------------
+for i, name in ipairs(tabs) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 140, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = name
+    btn.TextColor3 = i == 1 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 160)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.Code
+    btn.BorderSizePixel = 0
+    btn.Parent = tabContainer
+    
+    btn.MouseButton1Click:Connect(function()
+        playClick()
+        for idx, page in ipairs(pages) do
+            page.Visible = (idx == i)
+            tabContainer:GetChildren()[idx + 1].TextColor3 = idx == i and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 160)
+        end
+    end)
+end
+
+---------------------------------------------------------
+-- Core Functionality: Complete Unfiltered Remote Catalog
+---------------------------------------------------------
+local function loadRemotes()
+    for _, child in ipairs(listContainer:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    
+    local query = searchBox.Text:lower()
+    for _, desc in ipairs(game:GetDescendants()) do
+        if desc:IsA("RemoteEvent") or desc:IsA("UnreliableRemoteEvent") or desc:IsA("RemoteFunction") then
+            if query == "" or desc.Name:lower():find(query) then
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1, 0, 0, 26)
+                btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+                btn.TextColor3 = Color3.fromRGB(210, 210, 210)
+                btn.Text = "  [" .. desc.ClassName .. "] " .. desc.Name
+                btn.TextSize = 11
+                btn.Font = Enum.Font.Code
+                btn.TextXAlignment = Enum.TextXAlignment.Left
+                btn.ClipsDescendants = true
+                btn.BorderSizePixel = 0
+                btn.Parent = listContainer
+                
+                btn.MouseButton1Click:Connect(function()
+                    playClick()
+                    selectedTarget = desc
+                    backdoorDetected = true
+                    codeEditor.Text = string.format("-- Selected Target: %s\n-- Ready for execution", desc:GetFullName())
+                    logEditor("Targeted: " .. desc.Name, false)
+                end)
+            end
+        end
+    end
+    listContainer.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
+end
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(loadRemotes)
+loadRemotes()
